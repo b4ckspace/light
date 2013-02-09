@@ -1,0 +1,133 @@
+<html>
+<head>
+    <title>Lightcontrol</title>
+<script src="http://localhost:8012/socket.io/socket.io.js"></script>
+<script src="jquery-1.9.1.min.js"></script>
+<script src="q.min.js"></script>
+<script src="tools.js"></script>
+<script>
+var api_functions = [   "get_rooms", "get_devices", "get_devicestatus",
+                        "change_device", "change_some", "change_all", "change_room",
+                        "sync_all", "set_priority",
+                        "has_control", "get_control", "can_get_control", "release_control"];
+
+var Client = function(url){
+    EventEmitter.call(this);
+    this.socket = io.connect(url);
+    var that = this;
+    this.socket.on('connect', function(){
+        that.emit('ready')
+    });
+};
+
+inherits(Client, EventEmitter);
+
+api_functions.forEach(function(cmd){
+    Client.prototype[cmd]=function(){
+        // console.log("sendcmd : %s || %s", cmd, util.inspect(arguments))
+        var args = Array.prototype.slice.apply(arguments, [0]);
+        var cb=args[args.length-1];
+        if(typeof(cb) == 'function') {
+            var that=this;
+            args[args.length-1]=function(response){
+                if(response.ok){
+                    cb(response.data)
+                }else{
+                    that.emit('error', cmd, response.error)
+                }
+            };
+        }
+        args.unshift(cmd)
+        this.socket.emit.apply(this.socket, args);
+    };
+});
+var client = new Client('http://localhost:8012')
+
+client.on('ready', function(){
+    Q.fcall(function(){
+        var deferred = Q.defer();
+        client.sync_all(function(){
+            deferred.resolve()
+        });
+        return deferred.promise;
+    })
+    .then(function(){
+        var deferred = Q.defer();
+        client.get_rooms(function(rooms){
+            deferred.resolve(rooms)
+        });
+        return deferred.promise;
+    })
+    .then(function(rooms){
+        var promises = [];
+        rooms.forEach(function(room){
+            promises.push(printRoom(room));
+        });
+        return Q.all(promises)
+    })
+    .done(function(){
+        console.log("end of room list");
+    });
+});
+var printRoom = function(roomname){
+    var deferred = Q.defer();
+    client.get_devices(roomname, function(devices){
+        var promises = [];
+        devices.forEach(function(devname){
+            var deferred = Q.defer();
+            client.get_devicestatus(roomname, devname, function(data){
+                deferred.resolve([devname, data]);
+            })
+            promises.push(deferred.promise);
+        });
+        Q.allResolved(promises)
+        .then(function (promises) {
+            console.log("%s:", roomname);
+            var rcon = $('<div>');
+            rcon.append(roomname);
+            var button = $("<button>request controll</button>");
+            button.click(function(){
+                client.get_control(roomname);
+            });
+            rcon.append(button)
+            rcon.append('<br>');
+            $("#container").append(rcon)
+            promises.forEach(function(promise) {
+                if (promise.isFulfilled()) {
+                    var status = promise.valueOf();
+                    var color = status[1];
+                    console.log("\t %s: rgb(%s, %s, %s)", status[0], color.r, color.g, color.b);
+                    var form = $('<input type="color" />');
+                    form.val(rgb2css(color.r, color.g, color.b));
+                    form.change(function(){
+                        console.log('color changed ' + form.val());
+                        var cols = form.val().match('#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})');
+                        client.change_device(roomname, status[0], {r:cols[1],g:cols[2],b:cols[3]})
+                    });
+                    rcon.append(form);
+                    rcon.append(status[0]);
+                    rcon.append('<br>');
+                } else {
+                    throw promise.valueOf().exception;
+                }
+            });
+        })
+        .then(function(){deferred.resolve()});
+    })
+    return deferred.promise;
+};
+var rgb2css = function(r, g, b){
+    return '#' + col2hexval(r) + col2hexval(g) + col2hexval(b)
+};
+var col2hexval = function(val){
+    var str = val.toString(16);
+    if(str.length==1)
+        str = '0' + str
+    return str
+};
+</script>
+</head>
+<body>
+    <div id="container"></div>
+</body>
+</html>
