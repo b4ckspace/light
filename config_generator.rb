@@ -36,7 +36,7 @@ end
 ledstripes = [  "Regalbrett 1 (unten)", "Regalbrett 2", "Regalbrett 3", "Regalbrett 4(oben)",
                 "Brett Tür kurz", "Brett Tür lang", "Ampel"]
 
-stripestart = 201
+stripestart = 200
 ledstripes.each_index do |i|
     devices << {    :type => :rgb,
                     :name => ledstripes[i],
