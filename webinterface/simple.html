@@ -102,7 +102,9 @@ var printRoom = function(roomname){
                     form.change(function(){
                         console.log('color changed ' + form.val());
                         var cols = form.val().match('#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})');
-                        client.change_device(roomname, status[0], {r:cols[1],g:cols[2],b:cols[3]})
+                        client.change_device(roomname, status[0], { r:parseInt(cols[1], 16),
+                                                                    g:parseInt(cols[2], 16),
+                                                                    b:parseInt(cols[3], 16) })
                     });
                     rcon.append(form);
                     rcon.append(status[0]);
