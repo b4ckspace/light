@@ -1,7 +1,7 @@
 <html>
 <head>
     <title>Lightcontrol</title>
-<script src="http://localhost:8012/socket.io/socket.io.js"></script>
+<script src="http://rose:8012/socket.io/socket.io.js"></script>
 <script src="jquery-1.9.1.min.js"></script>
 <script src="q.min.js"></script>
 <script src="tools.js"></script>
@@ -41,7 +41,7 @@ api_functions.forEach(function(cmd){
         this.socket.emit.apply(this.socket, args);
     };
 });
-var client = new Client('http://localhost:8012')
+var client = new Client('http://rose:8012')
 
 client.on('ready', function(){
     Q.fcall(function(){

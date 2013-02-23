@@ -7,7 +7,7 @@ config = {  :host=>'lighting.core.bckspc.de',
 devices = []
 startchannel = 34
 ledbars = [ "Tür rechts", "Tür links",
-            "Fenster rechts", "Fenster mitte", "Fenster rechts",
+            "Fenster rechts", "Fenster mitte", "Fenster links",
             "Bar", "Logo", "Regal"]
 
 ledbars.each_index do |i|
