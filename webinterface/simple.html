@@ -56,7 +56,7 @@ client.on('ready', function(){
         client.get_rooms(function(rooms){
             deferred.resolve(rooms)
         });
-        return deferred.promise;
+        return deferred.promise;öö
     })
     .then(function(rooms){
         var promises = [];
@@ -66,9 +66,44 @@ client.on('ready', function(){
         return Q.all(promises)
     })
     .done(function(){
+        $("#container").append("<hr>").append("<hr>");
         console.log("end of room list");
+        var presetname = $('<input type="text"/>')
+        var savebtn = $("<button>save status</button>");
+        $("#container").append(presetname).append(savebtn);
+        savebtn.click(function(){
+            var name = presetname.val();
+            if(!name){
+                alert("presetname needed");
+                return
+            }
+            console.log("save preset with name" + name);
+            var dta = {};
+            for(var keyname in celems){
+                dta[keyname] = celems[keyname].val();
+            }
+            presman.set(name, dta);
+        });
+        $("#container").append("<br>");
+        for(var presetname in presman.list()){
+            (function(presetname){
+                var el = $('<a href="#">'+presetname+'</a>');
+                $("#container").append(el);
+                $("#container").append("<br>");
+                el.click(function(){
+                    console.log("set preset " + presetname);
+                    var preset = presman.get(presetname);
+                    for(devname in preset){
+                        celems[devname].val(preset[devname]);
+                    }
+                });
+            })(presetname)
+        };
     });
 });
+
+
+var celems = {};
 var printRoom = function(roomname){
     var deferred = Q.defer();
     client.get_devices(roomname, function(devices){
@@ -97,7 +132,7 @@ var printRoom = function(roomname){
                     var status = promise.valueOf();
                     var color = status[1];
                     console.log("\t %s: rgb(%s, %s, %s)", status[0], color.r, color.g, color.b);
-                    var form = $('<input type="color" />');
+                    var form = $('<input type="color" class="col"/>');
                     form.val(rgb2css(color.r, color.g, color.b));
                     form.change(function(){
                         console.log('color changed ' + form.val());
@@ -109,6 +144,7 @@ var printRoom = function(roomname){
                     rcon.append(form);
                     rcon.append(status[0]);
                     rcon.append('<br>');
+                    celems[roomname + "|||" + status[0]]=form;
                 } else {
                     throw promise.valueOf().exception;
                 }
@@ -127,6 +163,27 @@ var col2hexval = function(val){
         str = '0' + str
     return str
 };
+
+var PresetManager = function() {
+    var raw = localStorage["presets"] || "{}";
+    this.dta = JSON.parse(raw);
+};
+
+PresetManager.prototype.list = function() {
+    return this.dta;
+};
+
+PresetManager.prototype.get = function(name) {
+    return this.dta[name];
+};
+
+PresetManager.prototype.set = function(name, dta) {
+    this.dta[name] = dta;
+    localStorage["presets"] = JSON.stringify(this.dta);
+};
+
+var presman = new PresetManager();
+
 </script>
 </head>
 <body>
