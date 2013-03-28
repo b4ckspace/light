@@ -1,47 +1,18 @@
 <html>
 <head>
     <title>Lightcontrol</title>
-<script src="http://rose:8012/socket.io/socket.io.js"></script>
+<script src="http://localhost:8012/socket.io/socket.io.js"></script>
 <script src="jquery-1.9.1.min.js"></script>
 <script src="q.min.js"></script>
 <script src="tools.js"></script>
+
+
+<script src="client.js"></script>
+<script src="presets.js"></script>
+<script src="helpers.js"></script>
+<script src="app.js"></script>
+<script src="workit-reload.js"></script>
 <script>
-var api_functions = [   "get_rooms", "get_devices", "get_devicestatus",
-                        "change_device", "change_some", "change_all", "change_room",
-                        "sync_all", "set_priority",
-                        "has_control", "get_control", "can_get_control", "release_control"];
-
-var Client = function(url){
-    EventEmitter.call(this);
-    this.socket = io.connect(url);
-    var that = this;
-    this.socket.on('connect', function(){
-        that.emit('ready')
-    });
-};
-
-inherits(Client, EventEmitter);
-
-api_functions.forEach(function(cmd){
-    Client.prototype[cmd]=function(){
-        // console.log("sendcmd : %s || %s", cmd, util.inspect(arguments))
-        var args = Array.prototype.slice.apply(arguments, [0]);
-        var cb=args[args.length-1];
-        if(typeof(cb) == 'function') {
-            var that=this;
-            args[args.length-1]=function(response){
-                if(response.ok){
-                    cb(response.data)
-                }else{
-                    that.emit('error', cmd, response.error)
-                }
-            };
-        }
-        args.unshift(cmd)
-        this.socket.emit.apply(this.socket, args);
-    };
-});
-var client = new Client('http://rose:8012')
 
 client.on('ready', function(){
     Q.fcall(function(){
@@ -68,121 +39,9 @@ client.on('ready', function(){
     .done(function(){
         $("#container").append("<hr>").append("<hr>");
         console.log("end of room list");
-        var presetname = $('<input type="text"/>')
-        var savebtn = $("<button>save status</button>");
-        $("#container").append(presetname).append(savebtn);
-        savebtn.click(function(){
-            var name = presetname.val();
-            if(!name){
-                alert("presetname needed");
-                return
-            }
-            console.log("save preset with name" + name);
-            var dta = {};
-            for(var keyname in celems){
-                dta[keyname] = celems[keyname].val();
-            }
-            presman.set(name, dta);
-        });
-        $("#container").append("<br>");
-        for(var presetname in presman.list()){
-            (function(presetname){
-                var el = $('<a href="#">'+presetname+'</a>');
-                $("#container").append(el);
-                $("#container").append("<br>");
-                el.click(function(){
-                    console.log("set preset " + presetname);
-                    var preset = presman.get(presetname);
-                    for(devname in preset){
-                        celems[devname].val(preset[devname]);
-                    }
-                });
-            })(presetname)
-        };
+        presetfoo();
     });
 });
-
-
-var celems = {};
-var printRoom = function(roomname){
-    var deferred = Q.defer();
-    client.get_devices(roomname, function(devices){
-        var promises = [];
-        devices.forEach(function(devname){
-            var deferred = Q.defer();
-            client.get_devicestatus(roomname, devname, function(data){
-                deferred.resolve([devname, data]);
-            })
-            promises.push(deferred.promise);
-        });
-        Q.allResolved(promises)
-        .then(function (promises) {
-            console.log("%s:", roomname);
-            var rcon = $('<div>');
-            rcon.append(roomname);
-            var button = $("<button>request controll</button>");
-            button.click(function(){
-                client.get_control(roomname);
-            });
-            rcon.append(button)
-            rcon.append('<br>');
-            $("#container").append(rcon)
-            promises.forEach(function(promise) {
-                if (promise.isFulfilled()) {
-                    var status = promise.valueOf();
-                    var color = status[1];
-                    console.log("\t %s: rgb(%s, %s, %s)", status[0], color.r, color.g, color.b);
-                    var form = $('<input type="color" class="col"/>');
-                    form.val(rgb2css(color.r, color.g, color.b));
-                    form.change(function(){
-                        console.log('color changed ' + form.val());
-                        var cols = form.val().match('#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})');
-                        client.change_device(roomname, status[0], { r:parseInt(cols[1], 16),
-                                                                    g:parseInt(cols[2], 16),
-                                                                    b:parseInt(cols[3], 16) })
-                    });
-                    rcon.append(form);
-                    rcon.append(status[0]);
-                    rcon.append('<br>');
-                    celems[roomname + "|||" + status[0]]=form;
-                } else {
-                    throw promise.valueOf().exception;
-                }
-            });
-        })
-        .then(function(){deferred.resolve()});
-    })
-    return deferred.promise;
-};
-var rgb2css = function(r, g, b){
-    return '#' + col2hexval(r) + col2hexval(g) + col2hexval(b)
-};
-var col2hexval = function(val){
-    var str = val.toString(16);
-    if(str.length==1)
-        str = '0' + str
-    return str
-};
-
-var PresetManager = function() {
-    var raw = localStorage["presets"] || "{}";
-    this.dta = JSON.parse(raw);
-};
-
-PresetManager.prototype.list = function() {
-    return this.dta;
-};
-
-PresetManager.prototype.get = function(name) {
-    return this.dta[name];
-};
-
-PresetManager.prototype.set = function(name, dta) {
-    this.dta[name] = dta;
-    localStorage["presets"] = JSON.stringify(this.dta);
-};
-
-var presman = new PresetManager();
 
 </script>
 </head>
