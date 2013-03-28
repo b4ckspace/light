@@ -12,38 +12,6 @@
 <script src="helpers.js"></script>
 <script src="app.js"></script>
 <script src="workit-reload.js"></script>
-<script>
-
-client.on('ready', function(){
-    Q.fcall(function(){
-        var deferred = Q.defer();
-        client.sync_all(function(){
-            deferred.resolve()
-        });
-        return deferred.promise;
-    })
-    .then(function(){
-        var deferred = Q.defer();
-        client.get_rooms(function(rooms){
-            deferred.resolve(rooms)
-        });
-        return deferred.promise;öö
-    })
-    .then(function(rooms){
-        var promises = [];
-        rooms.forEach(function(room){
-            promises.push(printRoom(room));
-        });
-        return Q.all(promises)
-    })
-    .done(function(){
-        $("#container").append("<hr>").append("<hr>");
-        console.log("end of room list");
-        presetfoo();
-    });
-});
-
-</script>
 </head>
 <body>
     <div id="container"></div>

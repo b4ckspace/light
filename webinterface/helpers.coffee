@@ -70,7 +70,7 @@ class PresetManager
                 undefined
             undefined
         .then( (-> outer_deferred.resolve()), ((e)-> @a||=[];@a.push(e))) 
-    return outer_deferred
+    return outer_deferred.promise
 
  
 
